@@ -1,0 +1,35 @@
+---
+title: "Challenge 1"
+author: "Trenten Tso"
+date: "4/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r}
+insurance <- read.csv("C:/Users/trent/OneDrive/Documents/Stat 434 - stat learning/insurance_costs_1.csv")
+insurance2 <- read.csv("C:/Users/trent/OneDrive/Documents/Stat 434 - stat learning/insurance_costs_2.csv")
+
+```
+
+```{r}
+model <- lm(charges ~ poly(age,5)*smoker + poly(bmi,5)*smoker, data= insurance)
+
+p <- predict(model, newdata = insurance2)
+
+error <- insurance2$charges - p
+
+mse <- mean(error^2)
+summary(model)
+mse
+```
+The best model I found is having age and bmi a polynomial to the 5th power and having smoker as an interaction term for both variables
+```{r}
+ggplot(data = model,aes(x = seq(1:length(model$residuals)), y = model$residuals)) + geom_point(color = "red") + xlab("Index") + ylab("residuals") + theme_classic() +ggtitle("Resdiduals")
+
+```
+

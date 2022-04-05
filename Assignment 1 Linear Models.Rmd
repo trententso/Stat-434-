@@ -1,0 +1,221 @@
+---
+title: "Lab 1"
+author: "Trenten Tso"
+date: "4/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+## Part 1: Data Exploration
+
+1.
+```{r}
+insurance <- read.csv("C:/Users/trent/OneDrive/Documents/Stat 434 - stat learning/insurance_costs_1.csv")
+insurance %>%
+  head(5)
+mean(insurance$charges)
+mean(insurance$age)
+```
+2.
+```{r}
+insurance$sex <- as.factor(insurance$sex)
+insurance$smoker <- as.factor(insurance$smoker)
+insurance$region <- as.factor(insurance$region)
+```
+3.
+```{r}
+insurance %>%
+  ggplot(mapping = aes(x = smoker, y = charges)) + geom_boxplot()
+```
+Box plot comparing charges for smokers vs. non-smokers. Charges for smokers is far higher than non-smokers
+
+```{r}
+insurance %>%
+  ggplot(mapping = aes(x = bmi, y = charges)) + geom_point() + geom_smooth(method = "lm")
+```
+Scatterplot comparing BMI to charges. It does not appear we can make any conclusions based off this plot
+
+```{r}
+insurance %>%
+  ggplot(mapping = aes(x = age, y = charges, colour = sex)) + geom_point()
+```
+Scatterplot age vs. charges. It appears charges slightly increase as age increases and females pay slightly more than males. 
+
+## Part 2: Simple Linear Models
+
+1.
+```{r}
+model <- lm(charges ~ age, data = insurance)
+
+mod_sum <- summary(model)
+mod_sum
+mean(mod_sum$residuals^2)
+```
+The fit of this model is not good. The Rsquared is only about 10% meaning age only explains 10% of the variation in charges. The RSE is also very high at 11,280 meaning on average, the actual charges values deviate from the regression line by $11,280. An intercept of 3,611 means if a person were to be 0 years old, their charges would be 3,611 dollars. As a person gets one year older, their expenses increase by 228.80 dollars.
+
+2.
+```{r}
+model1 <- lm(charges ~ age + sex, data = insurance)
+
+mod1_sum <- summary(model1)
+mod1_sum
+```
+This model is not much better than the previous one. The Rsquared is only slightly better but the sex variable is not even statistically significant. If a person is male then their charges incease on average by 649.83 dollars. 
+
+3.
+```{r}
+model2 <- lm(charges ~ age + smoker, data = insurance)
+
+mod2_sum <- summary(model2)
+mod2_sum
+```
+The results are far better than the previous models. An Rsq of .76 and RSE of 5827 are significantlly better as well as all the variables are statistically significant. If someone is a smoker their charges on average increase by 24,048.97 dollars compared to a non-smoker
+
+4.
+The model from Q3 fits the data much better. The Rsq for this model is .76 while the rsq from Q2 is only .10. 
+```{r}
+# Get MSE for each model
+mean(mod1_sum$residuals^2) #Q2
+mean(mod2_sum$residuals^2) #Q3
+
+```
+The MSE for Q3 is far lower than the MSE for Q2
+
+## Part 3: Multiple Linear Models
+
+1.
+```{r}
+model <- lm(charges ~ age + bmi, data= insurance)
+
+mod_sum <- summary(model)
+mod_sum
+
+mean(mod_sum$residuals^2)
+```
+This model is only slightly better than Q1 from the previous part. The MSE decreased a little and the Rsq incerased a few percentage points. 
+
+2.
+```{r}
+
+model <- lm(charges ~ poly(age, 2), data= insurance)
+
+mod_sum <- summary(model)
+mod_sum
+
+mean(mod_sum$residuals^2)
+```
+Very similar results to P2 Q1. The MSE and Rsq stayed about the same. 
+
+3.
+```{r}
+model <- lm(charges ~ poly(age, 4), data= insurance)
+
+mod_sum <- summary(model)
+mod_sum
+
+mean(mod_sum$residuals^2)
+```
+Fitting a polynomial model of degree 4 improved the model by a little. The Rsq incerased by a percentage point and the MSE went down slightly but still remains high.
+
+4.
+```{r}
+model <- lm(charges ~ poly(age, 12), data= insurance)
+
+mod_sum <- summary(model)
+mod_sum
+
+mean(mod_sum$residuals^2)
+```
+Again, the model's Rsq and MSE imporoved slightly compared to the above model and P2 Q1 model. It has the highest Rsq and lowest MSE out of the polynomial models 
+
+5.
+According to the MSE and Rsq, Q4 is the best model out of all the models from this section. I do not agree that this is the "best" model because the model only explains about 12% of the variability in Charges and the MSE is still very large and similar to if we just regressed on age. 
+
+6. 
+```{r}
+pred_charges <- predict(model)
+
+insurance %>%
+  ggplot() +
+  geom_point(aes(x = age, y = charges)) + 
+  geom_line(aes(x = age, y = pred_charges))
+```
+
+## Part Four: New Data
+```{r}
+insurance2 <- read.csv("C:/Users/trent/OneDrive/Documents/Stat 434 - stat learning/insurance_costs_2.csv")
+
+insurance2$sex <- as.factor(insurance2$sex)
+insurance2$smoker <- as.factor(insurance2$smoker)
+insurance2$region <- as.factor(insurance2$region)
+```
+```{r}
+# Only Age
+model <- lm(charges ~ age, data= insurance)
+
+p <- predict(model, newdata = insurance2)
+
+error <- insurance2$charges - p
+
+mse <- mean(error^2)
+mse
+# 136,077,137
+```
+```{r}
+# Age and BMI
+model <- lm(charges ~ age + bmi, data= insurance)
+
+p <- predict(model, newdata = insurance2)
+
+error <- insurance2$charges - p
+
+mse <- mean(error^2)
+mse
+# 132,636,406
+```
+```{r}
+# age, bmi, smoker
+model <- lm(charges ~ age + bmi + smoker, data= insurance)
+
+p <- predict(model, newdata = insurance2)
+
+error <- insurance2$charges - p
+
+mse <- mean(error^2)
+mse
+# 35377541
+```
+```{r}
+# age, bmi, interaction smoker for both
+model <- lm(charges ~ (age + bmi):smoker, data= insurance)
+
+p <- predict(model, newdata = insurance2)
+
+error <- insurance2$charges - p
+
+mse <- mean(error^2)
+mse
+# 24795908
+```
+```{r}
+# age, bmi, smoker as predictors
+model <- lm(charges ~ (age + bmi)*smoker, data= insurance)
+
+p <- predict(model, newdata = insurance2)
+
+error <- insurance2$charges - p
+
+mse <- mean(error^2)
+mse
+# 21786257
+```
+
+The best model is the last one where age, bmi and smoker are predictors with age and bmi interacting with smoker
+
+```{r}
+ggplot(data = model,aes(x = seq(1:length(model$residuals)), y = model$residuals)) + geom_point()
+```
+
